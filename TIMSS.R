@@ -53,7 +53,7 @@ colnames(LT_data)
 
 # Factorius darome
 # Gal kur BCBG05A nereikia factoriaus nes 7 lygiai? galima pabandyti taip ir taip
-cols_to_factor <- c("ITSEX", "BSDGSLM","BSDGICM","BSDGSCM","BSDGSVM",
+cols_to_factor <- c("IDSCHOOL", "IDSTUD", "ITSEX", "BSDGSLM","BSDGICM","BSDGSCM","BSDGSVM",
                     "BCBG13A","BCBG13B", "BCBG13C", "BCBG13D", "BCBG03A", "BCBG05A")
 
 LT_data <- LT_data %>%
