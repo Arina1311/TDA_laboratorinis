@@ -5,7 +5,6 @@ library(haven)
 # Apie duomenys
 # Mokyklos
 # IDSCHOOL -	School ID
-# BCBG06A	- GEN\INSTRUCTIONAL DAYS PER YEAR
 # BCBG07 -	GEN\TOTAL NUMBER COMPUTERS
 # BCBG13A	- GEN\AGREEMENT\PROVIDE INFORMATION (1: Agree a lot; 2: Agree a little; 3: Disagree a little; 4: Disagree a lot; 9: Omitted or invalid; Sysmis: Not administered)
 # BCBG13B	- GEN\AGREEMENT\PROMOTE INTEREST (1: Agree a lot; 2: Agree a little; 3: Disagree a little; 4: Disagree a lot; 9: Omitted or invalid; Sysmis: Not administered)
@@ -61,3 +60,81 @@ LT_data <- LT_data %>%
 
 is.factor(LT_data$ITSEX)
 
+library(dplyr)
+library(foreign)
+library(knitr)
+library(afex)
+library(nlme)
+library(msm)
+library(car)
+
+data.hlm <- read.spss("hsbdataset.sav",
+                      to.data.frame = TRUE,
+                      use.value.labels = TRUE,
+                      strings.as.factors = TRUE)
+
+lapply(data.hlm, FUN = class)
+data.hlm$school<-factor(data.hlm$school)
+data.hlm$student<-factor(data.hlm$student)
+data.hlm$female<-factor(data.hlm$female)
+data.hlm$sector<-factor(data.hlm$sector)
+
+#1)
+model.0 <- lme(BSMMAT01 ~ 1, data=LT_data, random = ~1|IDSCHOOL)
+summary(model.0)
+
+#Y00 hipoteze
+gamma_00 <- data.frame(fixef(model.0))[1,1]
+gamma_00
+Anova(model.0, type = "III", test = "Chisq")
+
+#t00 ir sigma hipotezes
+var <-model.0$apVar
+par<-attr(var, "Pars")
+vc<-exp(par)^2
+int.var.st.err <- deltamethod (~ exp(x1)^2, par, var)
+resid.var.st.err <- deltamethod (~ exp(x2)^2, par, var)
+wald.z.r <- vc[2]/resid.var.st.err
+wald.z.int <- vc[1]/int.var.st.err
+p.r <- 1- pnorm(wald.z.r)
+p.int <- 1- pnorm(wald.z.int)
+p.r
+p.int
+
+ICC <- (vc[1])/(vc[1]+vc[2])
+ICC
+
+#2)
+#Apjungtas modelis: y00 + y01*meanses + y02*sector + u0 + y10*ses +
+#y11(ses*sector) + u1*ses + y20*female + e
+model.1<-lme(BSMMAT01 ~ 1 + meanses+sector+ses+ses:sector+female, data=LT_data, random = ~1+ses|IDSCHOOL)
+summary(model.1)
+
+gamma_00 <- data.frame(fixef(model.1)[1])[1,1]
+gamma_01 <- data.frame(fixef(model.1)[2])[1,1]
+gamma_02 <- data.frame(fixef(model.1)[3])[1,1]
+gamma_10 <- data.frame(fixef(model.1)[4])[1,1]
+gamma_11 <- data.frame(fixef(model.1)[6])[1,1]
+gamma_20 <- data.frame(fixef(model.1)[5])[1,1]
+gamma_00
+gamma_01
+gamma_02
+gamma_10
+gamma_11
+gamma_20
+
+anova(model.1)
+
+#sigmaNaujas = 6.05^2 = 36.6025
+#sigmaSenas 36.6^2 = 1339.56
+#3)
+#1339.56 - 36.6025 / 1339.56 = 0.9727
+anova(model.1, model.0)
+
+#4)
+resid1 <- residuals(model.1, level = 1)
+qqnorm(resid1); qqline(resid1)
+
+#5)
+#mathach = y00 + y01*-0.4 + y02*1 + y10*0.4 +
+#y11(0.4*1) + y20*1 + e + u0 + u1*0.4
